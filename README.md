@@ -125,5 +125,40 @@ Karakeep is licensed under [AGPL-3.0](https://github.com/karakeep-app/karakeep/b
 
 ## Fork Maintainer Notes
 
-This fork's external deployment integrations and upgrade procedure are
-documented in [LOCAL_CUSTOMIZATIONS.md](LOCAL_CUSTOMIZATIONS.md).
+This Fork follows [`karakeep-app/karakeep`](https://github.com/karakeep-app/karakeep)
+while maintaining a browser-extension integration for content already loaded
+in the user's authenticated X tab. Ordinary web pages continue to use the
+upstream extension flow. X status pages can save the main post, same-author
+replies, ordered Article text, headings, links, and images without sending X
+cookies to the Karakeep server. Article notes are stored as Markdown, while
+Reader View receives equivalent clean semantic HTML.
+
+Most of the integration lives in Fork-owned files and should merge cleanly
+with upstream. Review these overlap points whenever the upstream browser
+extension changes:
+
+- `apps/browser-extension/src/SavePage.tsx`: preserve the X status-page route.
+- `apps/browser-extension/manifest.json`: preserve the custom extension name,
+  content-script declaration, and version.
+- This README: preserve the Fork maintainer section.
+
+Use a normal merge into the published Fork branch rather than rewriting its
+history:
+
+```bash
+git fetch origin
+git switch main
+git merge origin/main
+pnpm --filter @karakeep/workers exec vitest run xArticleHtml.test.ts
+pnpm --filter @karakeep/browser-extension typecheck
+pnpm --filter @karakeep/workers typecheck
+pnpm --filter @karakeep/browser-extension build
+git push fork main
+```
+
+After rebuilding, reload `apps/browser-extension/dist/` in Chrome before
+testing a new capture. A source merge or extension rebuild does not replace the
+Karakeep database or existing bookmarks. Server upgrades must continue through
+the separately maintained upgrade guard described in
+[LOCAL_CUSTOMIZATIONS.md](LOCAL_CUSTOMIZATIONS.md), which is the full system of
+record for customization boundaries and recovery notes.
