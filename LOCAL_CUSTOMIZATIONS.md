@@ -44,7 +44,7 @@ pnpm --filter @karakeep/browser-extension build
 ```
 
 Load `apps/browser-extension/dist/` through Chrome's **Load unpacked** flow.
-It is named **Karakeep with X Loaded Capture** (currently version `1.2.14`) to
+It is named **Karakeep with X Loaded Capture** (currently version `1.2.15`) to
 distinguish it from the Chrome Web Store extension.
 
 - On ordinary HTTP/HTTPS pages it uses the unchanged upstream extension flow:
@@ -61,6 +61,10 @@ distinguish it from the Chrome Web Store extension.
   links and images remain interleaved as rendered in X. Saving an existing X
   URL uses `ifexists=overwrite`, replacing an earlier incomplete archive rather
   than retaining it through link de-duplication.
+- A standalone URL block at the end of an X Article is joined to its immediately
+  preceding prose block. Karakeep's Reader View uses Readability, which can
+  otherwise drop a final block containing only a URL; Archived Page retains the
+  full lightweight archive either way.
 - The X mode keeps image URLs in its archive. Downloading X media into separate
   Karakeep assets remains a future enhancement; do not assume video blobs are
   directly downloadable.

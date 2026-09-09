@@ -134,6 +134,23 @@ function articleHtml(root: Element): string | undefined {
     image.loading = "lazy";
   }
   for (const link of clone.querySelectorAll<HTMLAnchorElement>("a[href]")) {
+    const wrapper = link.parentElement;
+    const previous = wrapper?.previousElementSibling;
+    const isStandaloneLink =
+      wrapper &&
+      previous &&
+      !wrapper.querySelector("img") &&
+      !previous.querySelector("img") &&
+      cleanText(wrapper.textContent) === cleanText(link.textContent) &&
+      cleanText(previous.textContent);
+    if (!isStandaloneLink) continue;
+
+    // Readability drops a trailing block that contains only a URL. X uses that
+    // markup after prose such as "repo:"; keep the link with its preceding text.
+    previous.append(document.createTextNode(" "), link);
+    wrapper.remove();
+  }
+  for (const link of clone.querySelectorAll<HTMLAnchorElement>("a[href]")) {
     link.href = canonicalUrl(link.href);
     link.target = "_blank";
     link.rel = "noreferrer";
