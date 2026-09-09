@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Karakeep",
-  "description": "An extension to bookmark links to karakeep.app",
-  "version": "1.2.11",
+  "name": "Karakeep with X Loaded Capture",
+  "description": "Official Karakeep browser extension with local, user-loaded X post capture.",
+  "version": "1.2.12",
   "icons": {
     "16": "public/logo-16.png",
     "48": "public/logo-48.png",
@@ -47,6 +47,12 @@
   "permissions": ["storage", "tabs", "contextMenus", "activeTab", "scripting"],
   "optional_host_permissions": ["<all_urls>"],
   "content_scripts": [
+    {
+      "matches": ["https://x.com/*", "https://twitter.com/*"],
+      "js": ["src/content-scripts/x-content-script.ts"],
+      "run_at": "document_idle",
+      "all_frames": false
+    },
     {
       "matches": ["https://karakeep.invalid/*"],
       "js": ["src/content-scripts/singlefile-content-script.ts"],

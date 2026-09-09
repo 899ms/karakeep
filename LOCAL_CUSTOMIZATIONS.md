@@ -15,7 +15,8 @@ that upstream updates can be adopted with minimal merge work.
 | Component | Location | Purpose |
 | --- | --- | --- |
 | Karakeep service | `/opt/karakeep` | Official release image and persistent application data. |
-| X Quick Clipper | local `karakeep-x-quick-clipper/` | Chrome extension that saves user-loaded X post content without server-side X crawling. |
+| Forked browser extension | `apps/browser-extension/` | Official Karakeep extension behavior on ordinary pages, plus a local, user-loaded X post capture mode on X status pages. |
+| Legacy X Quick Clipper | local `karakeep-x-quick-clipper/` | Earlier standalone prototype; keep only as a recovery/reference copy after the forked extension is installed. |
 | Title translator | `/opt/karakeep-title-translator/title_translator.py` | Translates saved bookmark titles into Chinese using the configured Gemini-compatible endpoint. |
 | Prompt extractor | `/opt/karakeep-title-translator/prompt_worker.py` | Extracts prompt-like text from newly saved bookmarks. |
 | Upgrade guard | `/opt/karakeep-customizations` | Snapshots custom state, reapplies non-secret environment overrides, upgrades the official containers, and verifies health. |
@@ -34,6 +35,31 @@ health, environment overrides, and the two external worker timers afterwards.
 Secrets remain only in `/opt/karakeep/.env` and are deliberately not recorded
 in this repository.
 
+## Browser Extension Behavior
+
+Build the extension from this Fork with:
+
+```bash
+pnpm --filter @karakeep/browser-extension build
+```
+
+Load `apps/browser-extension/dist/` through Chrome's **Load unpacked** flow.
+It is named **Karakeep with X Loaded Capture** to distinguish it from the
+Chrome Web Store extension.
+
+- On ordinary HTTP/HTTPS pages it uses the unchanged upstream extension flow:
+  link, selection, image and context-menu saves; the `Ctrl+Shift+E` shortcut;
+  auto-save; badge lookup; optional SingleFile client-side crawling; and the
+  standard settings page.
+- On `x.com/.../status/<id>` and `twitter.com/.../status/<id>` it presents the
+  X-specific mode. The user expands desired replies first; the extension then
+  saves only already-rendered content and same-author replies as a lightweight
+  archive. This avoids server-side X crawling and does not send browser cookies
+  to Karakeep.
+- The X mode keeps image URLs in its archive. Downloading X media into separate
+  Karakeep assets remains a future enhancement; do not assume video blobs are
+  directly downloadable.
+
 ## Fork Maintenance
 
 1. Fetch upstream: `git fetch origin`.
@@ -47,6 +73,9 @@ in this repository.
 ## Current Scope
 
 - No production Karakeep application source files have been changed.
+- Browser-extension source changes live in this Fork and are isolated to the
+  X status-page route plus its content script; upstream behavior remains the
+  default for every other page.
 - No upstream secrets, browser cookies, or bookmark data are stored here.
 - This Fork primarily documents the deployment boundary and can accept small,
   reviewed integration changes when needed.

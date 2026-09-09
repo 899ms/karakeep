@@ -22,8 +22,29 @@ import {
 import { useTRPC } from "./utils/trpc";
 import { MessageType } from "./utils/type";
 import { isHttpUrl } from "./utils/url";
+import XQuickCapturePage from "./XQuickCapturePage";
 
 export default function SavePage() {
+  const [isLoadingTab, setIsLoadingTab] = useState(true);
+  const [isXPost, setIsXPost] = useState(false);
+
+  useEffect(() => {
+    chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
+      setIsXPost(
+        Boolean(
+          tab?.url &&
+          /^https:\/\/(x|twitter)\.com\/.+\/status\/\d+/.test(tab.url),
+        ),
+      );
+      setIsLoadingTab(false);
+    });
+  }, []);
+
+  if (isLoadingTab) return <div>Loading ...</div>;
+  return isXPost ? <XQuickCapturePage /> : <OfficialSavePage />;
+}
+
+function OfficialSavePage() {
   const api = useTRPC();
   const { settings, isPending: isSettingsLoaded } = usePluginSettings();
   const [error, setError] = useState<string | undefined>(undefined);
