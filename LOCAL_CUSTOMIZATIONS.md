@@ -44,7 +44,7 @@ pnpm --filter @karakeep/browser-extension build
 ```
 
 Load `apps/browser-extension/dist/` through Chrome's **Load unpacked** flow.
-It is named **Karakeep with X Loaded Capture** (currently version `1.2.18`) to
+It is named **Karakeep with X Loaded Capture** (currently version `1.2.19`) to
 distinguish it from the Chrome Web Store extension.
 
 - On ordinary HTTP/HTTPS pages it uses the unchanged upstream extension flow:
@@ -75,6 +75,10 @@ distinguish it from the Chrome Web Store extension.
   equivalent clean semantic HTML rather than X's Draft.js wrappers; image
   sections become `figure > img`, so X's percentage-height placeholders cannot
   create large blank areas in Archived Page.
+- Ordinary X post images are emitted in a semantic `figure` rather than a
+  generic image-only `div`. This keeps them in Karakeep's Readability-based
+  Reader View. Archived Page uses a two-column media layout at desktop widths,
+  a single column on narrow screens, and full width for a lone image.
 - The X mode keeps image URLs in its archive. Downloading X media into separate
   Karakeep assets remains a future enhancement; do not assume video blobs are
   directly downloadable.

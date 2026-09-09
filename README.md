@@ -131,7 +131,9 @@ in the user's authenticated X tab. Ordinary web pages continue to use the
 upstream extension flow. X status pages can save the main post, same-author
 replies, ordered Article text, headings, links, and images without sending X
 cookies to the Karakeep server. Article notes are stored as Markdown, while
-Reader View receives equivalent clean semantic HTML.
+Reader View receives equivalent clean semantic HTML. Ordinary X post images
+also use semantic figure markup so Readability retains them; Archived Page
+shows multi-image posts in a larger two-column layout.
 
 Most of the integration lives in Fork-owned files and should merge cleanly
 with upstream. Review these overlap points whenever the upstream browser
@@ -140,6 +142,8 @@ extension changes:
 - `apps/browser-extension/src/SavePage.tsx`: preserve the X status-page route.
 - `apps/browser-extension/manifest.json`: preserve the custom extension name,
   content-script declaration, and version.
+- `apps/browser-extension/src/utils/xArchiveHtml.ts`: preserve semantic media
+  markup and the lightweight archive layout.
 - This README: preserve the Fork maintainer section.
 
 Use a normal merge into the published Fork branch rather than rewriting its
@@ -149,7 +153,7 @@ history:
 git fetch origin
 git switch main
 git merge origin/main
-pnpm --filter @karakeep/workers exec vitest run xArticleHtml.test.ts
+pnpm --filter @karakeep/workers exec vitest run xArticleHtml.test.ts xArchiveHtml.test.ts
 pnpm --filter @karakeep/browser-extension typecheck
 pnpm --filter @karakeep/workers typecheck
 pnpm --filter @karakeep/browser-extension build
