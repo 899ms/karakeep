@@ -18,6 +18,7 @@ type XCapture = {
   mainPost: XPost;
   replies: XPost[];
   markdown: string;
+  articleHtml?: string;
 };
 
 declare global {
@@ -113,6 +114,33 @@ function articleText(root: Element): string {
   );
 }
 
+function articleHtml(root: Element): string | undefined {
+  const content = root.querySelector(
+    '[data-testid="twitterArticleRichTextView"]',
+  );
+  if (!content) return undefined;
+
+  // Keep the already-rendered DOM order: X Articles interleave prose, headings,
+  // lists and media. Flattening it into text loses that sequence.
+  const clone = content.cloneNode(true) as HTMLElement;
+  for (const element of clone.querySelectorAll("script, style, button, svg")) {
+    element.remove();
+  }
+  for (const image of clone.querySelectorAll<HTMLImageElement>("img")) {
+    const source = image.currentSrc || image.src;
+    if (source) image.src = source;
+    image.removeAttribute("srcset");
+    image.removeAttribute("style");
+    image.loading = "lazy";
+  }
+  for (const link of clone.querySelectorAll<HTMLAnchorElement>("a[href]")) {
+    link.href = canonicalUrl(link.href);
+    link.target = "_blank";
+    link.rel = "noreferrer";
+  }
+  return clone.innerHTML;
+}
+
 function extractPost(article: Element): XPost | undefined {
   const time = article.querySelector("time");
   const statusLink =
@@ -187,9 +215,11 @@ function captureLoadedXContent(includeReplies: boolean): XCapture {
   const renderedArticle = document.querySelector(
     'article[data-testid="twitterArticleReadView"]',
   );
+  let renderedArticleHtml: string | undefined;
   if (renderedArticle) {
     const renderedText = articleText(renderedArticle);
     if (renderedText) mainPost.text = renderedText;
+    renderedArticleHtml = articleHtml(renderedArticle);
     const articleMedia = mediaFromRoot(renderedArticle);
     mainPost.media = [...mainPost.media, ...articleMedia].filter(
       (media, index, all) =>
@@ -213,7 +243,14 @@ function captureLoadedXContent(includeReplies: boolean): XCapture {
       postToMarkdown(reply, `作者回复 ${index + 1}`),
     ),
   ].join("\n\n");
-  return { title, sourceUrl: mainPost.url, mainPost, replies, markdown };
+  return {
+    title,
+    sourceUrl: mainPost.url,
+    mainPost,
+    replies,
+    markdown,
+    articleHtml: renderedArticleHtml,
+  };
 }
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {

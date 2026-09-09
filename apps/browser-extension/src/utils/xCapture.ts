@@ -16,6 +16,7 @@ export type XCapture = {
   mainPost: XPost;
   replies: XPost[];
   markdown: string;
+  articleHtml?: string;
 };
 
 function escapeHtml(value: string): string {
@@ -45,7 +46,7 @@ function renderRichText(value: string): string {
 }
 
 export function buildXArchiveHtml(capture: XCapture): string {
-  const postHtml = (post: XPost, heading: string) => {
+  const postHtml = (post: XPost, heading: string, contentHtml?: string) => {
     const images = post.media
       .filter((media) => media.kind === "image" && media.url)
       .map(
@@ -57,9 +58,13 @@ export function buildXArchiveHtml(capture: XCapture): string {
       .filter((media) => media.kind === "video" && media.url)
       .map((media) => `<p><a href="${escapeHtml(media.url)}">视频链接</a></p>`)
       .join("");
-    return `<article><h2>${escapeHtml(heading)}</h2><p class="meta">${escapeHtml(post.author)} ${escapeHtml(post.handle)} · ${escapeHtml(post.publishedAt)}</p><p class="meta"><a href="${escapeHtml(post.url)}">查看原推文</a></p><div class="text">${renderRichText(post.text)}</div><div class="media">${images}${videos}</div></article>`;
+    const content = contentHtml || renderRichText(post.text);
+    const media = contentHtml
+      ? ""
+      : `<div class="media">${images}${videos}</div>`;
+    return `<article><h2>${escapeHtml(heading)}</h2><p class="meta">${escapeHtml(post.author)} ${escapeHtml(post.handle)} · ${escapeHtml(post.publishedAt)}</p><p class="meta"><a href="${escapeHtml(post.url)}">查看原推文</a></p><div class="text${contentHtml ? " x-article-content" : ""}">${content}</div>${media}</article>`;
   };
-  return `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>${escapeHtml(capture.title)}</title><style>body{max-width:760px;margin:32px auto;padding:0 18px;font:16px/1.6 system-ui,sans-serif;color:#172033}article{border-bottom:1px solid #dde3ed;padding:20px 0}.meta{color:#637086;font-size:14px}.media{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;margin-top:16px}.media img{max-width:100%;height:auto;border-radius:6px}</style></head><body><h1>${escapeHtml(capture.title)}</h1><p class="meta">本页由浏览器从已加载的 X 内容生成；采集时间：${escapeHtml(new Date().toISOString())}</p>${postHtml(capture.mainPost, "主推文")}${capture.replies.map((reply, index) => postHtml(reply, `作者回复 ${index + 1}`)).join("")}</body></html>`;
+  return `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>${escapeHtml(capture.title)}</title><style>body{max-width:760px;margin:32px auto;padding:0 18px;font:16px/1.6 system-ui,sans-serif;color:#172033}article{border-bottom:1px solid #dde3ed;padding:20px 0}.meta{color:#637086;font-size:14px}.media{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;margin-top:16px}.media img{max-width:100%;height:auto;border-radius:6px}.x-article-content{font-family:Georgia,"Noto Serif SC",serif;font-size:18px;line-height:1.75}.x-article-content>div,.x-article-content>section,.x-article-content>blockquote,.x-article-content>ul,.x-article-content>ol{margin:1.3em 0}.x-article-content h1,.x-article-content h2,.x-article-content h3{font-family:system-ui,sans-serif;line-height:1.3;margin:1.8em 0 .7em}.x-article-content img{display:block;max-width:100%;height:auto;margin:1.4em auto;border-radius:6px}.x-article-content a{color:#2563eb;overflow-wrap:anywhere}.x-article-content blockquote{margin-left:0;padding-left:16px;border-left:3px solid #cbd5e1;color:#475569}.x-article-content ul,.x-article-content ol{padding-left:1.5em}</style></head><body><h1>${escapeHtml(capture.title)}</h1><p class="meta">本页由浏览器从已加载的 X 内容生成；采集时间：${escapeHtml(new Date().toISOString())}</p>${postHtml(capture.mainPost, "主推文", capture.articleHtml)}${capture.replies.map((reply, index) => postHtml(reply, `作者回复 ${index + 1}`)).join("")}</body></html>`;
 }
 
 export async function saveXArchive(capture: XCapture): Promise<{ id: string }> {
