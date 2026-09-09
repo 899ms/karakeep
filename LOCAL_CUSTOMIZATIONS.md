@@ -44,7 +44,7 @@ pnpm --filter @karakeep/browser-extension build
 ```
 
 Load `apps/browser-extension/dist/` through Chrome's **Load unpacked** flow.
-It is named **Karakeep with X Loaded Capture** (currently version `1.2.15`) to
+It is named **Karakeep with X Loaded Capture** (currently version `1.2.16`) to
 distinguish it from the Chrome Web Store extension.
 
 - On ordinary HTTP/HTTPS pages it uses the unchanged upstream extension flow:
@@ -59,8 +59,9 @@ distinguish it from the Chrome Web Store extension.
 - X Articles render their long-form body in a separate X DOM tree. The Fork
   keeps that body as sanitized, ordered HTML, so headings, paragraphs, lists,
   links and images remain interleaved as rendered in X. Saving an existing X
-  URL uses `ifexists=overwrite`, replacing an earlier incomplete archive rather
-  than retaining it through link de-duplication.
+  URL uses `ifexists=overwrite-recrawl`, replacing an earlier incomplete
+  archive and rebuilding Karakeep's Reader HTML from that new archive rather
+  than retaining stale content through link de-duplication.
 - A standalone URL block at the end of an X Article is joined to its immediately
   preceding prose block. Karakeep's Reader View uses Readability, which can
   otherwise drop a final block containing only a URL; Archived Page retains the

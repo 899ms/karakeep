@@ -83,7 +83,7 @@ export async function saveXArchive(capture: XCapture): Promise<{ id: string }> {
   }
   const baseUrl = settings.address.replace(/\/$/, "");
   const response = await fetch(
-    `${baseUrl}/api/v1/bookmarks/singlefile?ifexists=overwrite`,
+    `${baseUrl}/api/v1/bookmarks/singlefile?ifexists=overwrite-recrawl`,
     { method: "POST", headers, body: formData },
   );
   if (!response.ok) {
