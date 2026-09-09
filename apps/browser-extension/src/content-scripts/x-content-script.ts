@@ -1,4 +1,7 @@
-import { semanticizeXArticleBlocks } from "../utils/xArticleHtml";
+import {
+  semanticizeXArticleBlocks,
+  xArticleBlocksToMarkdown,
+} from "../utils/xArticleHtml";
 
 type XMedia = { kind: "image" | "video"; url: string };
 
@@ -114,7 +117,9 @@ function articleText(root: Element): string {
   );
 }
 
-function articleHtml(root: Element): string | undefined {
+function articleContent(
+  root: Element,
+): { html: string; markdown: string } | undefined {
   const content = root.querySelector(
     '[data-testid="twitterArticleRichTextView"]',
   );
@@ -123,17 +128,18 @@ function articleHtml(root: Element): string | undefined {
   // Keep the already-rendered DOM order: X Articles interleave prose, headings,
   // lists and media. Flattening it into text loses that sequence.
   const clone = content.cloneNode(true) as HTMLElement;
-  for (const element of clone.querySelectorAll("script, style, button, svg")) {
+  const body = clone.querySelector("[data-contents]") || clone;
+  for (const element of body.querySelectorAll("script, style, button, svg")) {
     element.remove();
   }
-  for (const image of clone.querySelectorAll<HTMLImageElement>("img")) {
+  for (const image of body.querySelectorAll<HTMLImageElement>("img")) {
     const source = image.currentSrc || image.src;
     if (source) image.src = source;
     image.removeAttribute("srcset");
     image.removeAttribute("style");
     image.loading = "lazy";
   }
-  for (const link of clone.querySelectorAll<HTMLAnchorElement>("a[href]")) {
+  for (const link of body.querySelectorAll<HTMLAnchorElement>("a[href]")) {
     const wrapper = link.parentElement;
     const previous = wrapper?.previousElementSibling;
     const isStandaloneLink =
@@ -153,13 +159,13 @@ function articleHtml(root: Element): string | undefined {
   // Readability conditionally removes generic divs and dropped the final
   // paragraph of a real X Article. Preserve X's order while giving prose
   // blocks their correct semantic element before Karakeep parses the archive.
-  semanticizeXArticleBlocks(clone);
-  for (const link of clone.querySelectorAll<HTMLAnchorElement>("a[href]")) {
+  semanticizeXArticleBlocks(body);
+  for (const link of body.querySelectorAll<HTMLAnchorElement>("a[href]")) {
     link.href = canonicalUrl(link.href);
     link.target = "_blank";
     link.rel = "noreferrer";
   }
-  return clone.innerHTML;
+  return { html: body.innerHTML, markdown: xArticleBlocksToMarkdown(body) };
 }
 
 function extractPost(article: Element): XPost | undefined {
@@ -203,7 +209,11 @@ function extractPost(article: Element): XPost | undefined {
   };
 }
 
-function postToMarkdown(post: XPost, label: string): string {
+function postToMarkdown(
+  post: XPost,
+  label: string,
+  includeMedia = true,
+): string {
   const lines = [
     `### ${label}`,
     `- 作者：${post.author} ${post.handle}`,
@@ -211,7 +221,9 @@ function postToMarkdown(post: XPost, label: string): string {
   ];
   if (post.publishedAt) lines.push(`- 时间：${post.publishedAt}`);
   if (post.text) lines.push("", post.text);
-  for (const media of post.media) lines.push(`- 媒体：${media.url}`);
+  if (includeMedia) {
+    for (const media of post.media) lines.push(`- 媒体：${media.url}`);
+  }
   return lines.join("\n");
 }
 
@@ -237,10 +249,13 @@ function captureLoadedXContent(includeReplies: boolean): XCapture {
     'article[data-testid="twitterArticleReadView"]',
   );
   let renderedArticleHtml: string | undefined;
+  let renderedArticleMarkdown: string | undefined;
   if (renderedArticle) {
     const renderedText = articleText(renderedArticle);
     if (renderedText) mainPost.text = renderedText;
-    renderedArticleHtml = articleHtml(renderedArticle);
+    const renderedContent = articleContent(renderedArticle);
+    renderedArticleHtml = renderedContent?.html;
+    renderedArticleMarkdown = renderedContent?.markdown;
     const articleMedia = mediaFromRoot(renderedArticle);
     mainPost.media = [...mainPost.media, ...articleMedia].filter(
       (media, index, all) =>
@@ -259,7 +274,11 @@ function captureLoadedXContent(includeReplies: boolean): XCapture {
     "",
     "仅包含浏览器已展示的主推文及同作者回复；不读取 Cookie，也不向服务端提交整页归档。",
     "",
-    postToMarkdown(mainPost, "主推文"),
+    postToMarkdown(
+      { ...mainPost, text: renderedArticleMarkdown || mainPost.text },
+      "主推文",
+      !renderedArticleMarkdown,
+    ),
     ...replies.map((reply, index) =>
       postToMarkdown(reply, `作者回复 ${index + 1}`),
     ),

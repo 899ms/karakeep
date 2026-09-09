@@ -44,7 +44,7 @@ pnpm --filter @karakeep/browser-extension build
 ```
 
 Load `apps/browser-extension/dist/` through Chrome's **Load unpacked** flow.
-It is named **Karakeep with X Loaded Capture** (currently version `1.2.17`) to
+It is named **Karakeep with X Loaded Capture** (currently version `1.2.18`) to
 distinguish it from the Chrome Web Store extension.
 
 - On ordinary HTTP/HTTPS pages it uses the unchanged upstream extension flow:
@@ -70,6 +70,11 @@ distinguish it from the Chrome Web Store extension.
   `div.longform-unstyled` elements to semantic paragraphs before upload. This
   prevents Readability's conditional `div` cleanup from removing the final
   paragraph even when it contains both explanatory text and a link.
+- X Article content is also serialized to Markdown for the bookmark note.
+  Headings, lists, links and images retain their source order. Reader View uses
+  equivalent clean semantic HTML rather than X's Draft.js wrappers; image
+  sections become `figure > img`, so X's percentage-height placeholders cannot
+  create large blank areas in Archived Page.
 - The X mode keeps image URLs in its archive. Downloading X media into separate
   Karakeep assets remains a future enhancement; do not assume video blobs are
   directly downloadable.
