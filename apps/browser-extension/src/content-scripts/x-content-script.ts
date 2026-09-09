@@ -1,4 +1,4 @@
-export {};
+import { semanticizeXArticleBlocks } from "../utils/xArticleHtml";
 
 type XMedia = { kind: "image" | "video"; url: string };
 
@@ -150,6 +150,10 @@ function articleHtml(root: Element): string | undefined {
     previous.append(document.createTextNode(" "), link);
     wrapper.remove();
   }
+  // Readability conditionally removes generic divs and dropped the final
+  // paragraph of a real X Article. Preserve X's order while giving prose
+  // blocks their correct semantic element before Karakeep parses the archive.
+  semanticizeXArticleBlocks(clone);
   for (const link of clone.querySelectorAll<HTMLAnchorElement>("a[href]")) {
     link.href = canonicalUrl(link.href);
     link.target = "_blank";

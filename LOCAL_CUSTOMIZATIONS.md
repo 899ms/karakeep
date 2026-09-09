@@ -44,7 +44,7 @@ pnpm --filter @karakeep/browser-extension build
 ```
 
 Load `apps/browser-extension/dist/` through Chrome's **Load unpacked** flow.
-It is named **Karakeep with X Loaded Capture** (currently version `1.2.16`) to
+It is named **Karakeep with X Loaded Capture** (currently version `1.2.17`) to
 distinguish it from the Chrome Web Store extension.
 
 - On ordinary HTTP/HTTPS pages it uses the unchanged upstream extension flow:
@@ -66,6 +66,10 @@ distinguish it from the Chrome Web Store extension.
   preceding prose block. Karakeep's Reader View uses Readability, which can
   otherwise drop a final block containing only a URL; Archived Page retains the
   full lightweight archive either way.
+- X Article prose blocks are converted from Draft.js's generic
+  `div.longform-unstyled` elements to semantic paragraphs before upload. This
+  prevents Readability's conditional `div` cleanup from removing the final
+  paragraph even when it contains both explanatory text and a link.
 - The X mode keeps image URLs in its archive. Downloading X media into separate
   Karakeep assets remains a future enhancement; do not assume video blobs are
   directly downloadable.
