@@ -44,8 +44,8 @@ pnpm --filter @karakeep/browser-extension build
 ```
 
 Load `apps/browser-extension/dist/` through Chrome's **Load unpacked** flow.
-It is named **Karakeep with X Loaded Capture** to distinguish it from the
-Chrome Web Store extension.
+It is named **Karakeep with X Loaded Capture** (currently version `1.2.13`) to
+distinguish it from the Chrome Web Store extension.
 
 - On ordinary HTTP/HTTPS pages it uses the unchanged upstream extension flow:
   link, selection, image and context-menu saves; the `Ctrl+Shift+E` shortcut;
@@ -56,6 +56,10 @@ Chrome Web Store extension.
   saves only already-rendered content and same-author replies as a lightweight
   archive. This avoids server-side X crawling and does not send browser cookies
   to Karakeep.
+- X Articles render their long-form body in a separate X DOM tree. The Fork
+  merges that tree into the main post capture, including all article images.
+  Saving an existing X URL uses `ifexists=overwrite`, replacing an earlier
+  incomplete archive rather than retaining it through link de-duplication.
 - The X mode keeps image URLs in its archive. Downloading X media into separate
   Karakeep assets remains a future enhancement; do not assume video blobs are
   directly downloadable.

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Karakeep with X Loaded Capture",
   "description": "Official Karakeep browser extension with local, user-loaded X post capture.",
-  "version": "1.2.12",
+  "version": "1.2.13",
   "icons": {
     "16": "public/logo-16.png",
     "48": "public/logo-48.png",

@@ -82,6 +82,37 @@ function textWithLinks(root: Element): string {
   return normalizeRichText(text);
 }
 
+function mediaFromRoot(root: Element): XMedia[] {
+  const images = [
+    ...root.querySelectorAll<HTMLImageElement>('img[src*="twimg.com/media"]'),
+  ];
+  const videos = [...root.querySelectorAll<HTMLVideoElement>("video")];
+  return [...images, ...videos]
+    .filter((item, index, all) => all.indexOf(item) === index)
+    .map((item): XMedia | undefined => {
+      if (item instanceof HTMLImageElement) {
+        return { kind: "image", url: item.currentSrc || item.src };
+      }
+      if (item.currentSrc && !item.currentSrc.startsWith("blob:")) {
+        return { kind: "video", url: item.currentSrc };
+      }
+      return undefined;
+    })
+    .filter((item): item is XMedia => Boolean(item));
+}
+
+function articleText(root: Element): string {
+  // X Articles use a separate article tree and do not expose tweetText.
+  // Drop engagement counters while retaining headings, paragraphs and lists.
+  return normalizeRichText(
+    (root as HTMLElement).innerText
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => !/^\d+(?:\.\d+)?[KM]?$/i.test(line))
+      .join("\n"),
+  );
+}
+
 function extractPost(article: Element): XPost | undefined {
   const time = article.querySelector("time");
   const statusLink =
@@ -103,22 +134,7 @@ function extractPost(article: Element): XPost | undefined {
   );
   const userName = article.querySelector('[data-testid="User-Name"]');
   const textNode = article.querySelector('[data-testid="tweetText"]');
-  const images = [
-    ...article.querySelectorAll<HTMLImageElement>(
-      'img[src*="twimg.com/media"]',
-    ),
-  ];
-  const videos = [...article.querySelectorAll<HTMLVideoElement>("video")];
-  const media = [...images, ...videos]
-    .filter((item, index, all) => all.indexOf(item) === index)
-    .map((item): XMedia | undefined => {
-      if (item instanceof HTMLImageElement)
-        return { kind: "image", url: item.currentSrc || item.src };
-      if (item.currentSrc && !item.currentSrc.startsWith("blob:"))
-        return { kind: "video", url: item.currentSrc };
-      return undefined;
-    })
-    .filter((item): item is XMedia => Boolean(item));
+  const media = mediaFromRoot(article);
 
   return {
     id,
@@ -167,6 +183,19 @@ function captureLoadedXContent(includeReplies: boolean): XCapture {
   }
   const mainPost = posts.find((post) => post.id === currentId);
   if (!mainPost) throw new Error("没有读到主推文。请等待页面加载完成后重试。");
+
+  const renderedArticle = document.querySelector(
+    'article[data-testid="twitterArticleReadView"]',
+  );
+  if (renderedArticle) {
+    const renderedText = articleText(renderedArticle);
+    if (renderedText) mainPost.text = renderedText;
+    const articleMedia = mediaFromRoot(renderedArticle);
+    mainPost.media = [...mainPost.media, ...articleMedia].filter(
+      (media, index, all) =>
+        all.findIndex((candidate) => candidate.url === media.url) === index,
+    );
+  }
 
   const replies = includeReplies
     ? posts.filter(

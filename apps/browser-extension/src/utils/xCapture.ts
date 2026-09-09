@@ -62,6 +62,45 @@ export function buildXArchiveHtml(capture: XCapture): string {
   return `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>${escapeHtml(capture.title)}</title><style>body{max-width:760px;margin:32px auto;padding:0 18px;font:16px/1.6 system-ui,sans-serif;color:#172033}article{border-bottom:1px solid #dde3ed;padding:20px 0}.meta{color:#637086;font-size:14px}.media{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;margin-top:16px}.media img{max-width:100%;height:auto;border-radius:6px}</style></head><body><h1>${escapeHtml(capture.title)}</h1><p class="meta">本页由浏览器从已加载的 X 内容生成；采集时间：${escapeHtml(new Date().toISOString())}</p>${postHtml(capture.mainPost, "主推文")}${capture.replies.map((reply, index) => postHtml(reply, `作者回复 ${index + 1}`)).join("")}</body></html>`;
 }
 
+export async function saveXArchive(capture: XCapture): Promise<{ id: string }> {
+  const settings = await getPluginSettings();
+  const formData = new FormData();
+  formData.append("url", capture.sourceUrl);
+  formData.append(
+    "file",
+    new File([buildXArchiveHtml(capture)], "x-loaded-content.html", {
+      type: "text/html",
+    }),
+  );
+  const headers: HeadersInit = { Authorization: `Bearer ${settings.apiKey}` };
+  for (const [key, value] of Object.entries(settings.customHeaders)) {
+    headers[key] = value;
+  }
+  const baseUrl = settings.address.replace(/\/$/, "");
+  const response = await fetch(
+    `${baseUrl}/api/v1/bookmarks/singlefile?ifexists=overwrite`,
+    { method: "POST", headers, body: formData },
+  );
+  if (!response.ok) {
+    throw new Error(
+      `X 归档上传失败：${response.status} ${await response.text()}`,
+    );
+  }
+  const bookmark = (await response.json()) as { id: string };
+  const updateResponse = await fetch(
+    `${baseUrl}/api/v1/bookmarks/${bookmark.id}`,
+    {
+      method: "PATCH",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({ title: capture.title, note: capture.markdown }),
+    },
+  );
+  if (!updateResponse.ok) {
+    throw new Error(`X 归档笔记更新失败：${updateResponse.status}`);
+  }
+  return bookmark;
+}
+
 export async function getLoadedXCapture(
   tabId: number,
   includeReplies: boolean,
@@ -102,3 +141,4 @@ export async function getLoadedXCapture(
     throw new Error(response.error || "未能读取当前 X 页面。");
   return response.capture;
 }
+import { getPluginSettings } from "./settings";

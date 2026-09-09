@@ -1,24 +1,16 @@
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-
-import { BookmarkTypes } from "@karakeep/shared/types/bookmarks";
 
 import { Button } from "./components/ui/button";
 import Spinner from "./Spinner";
-import { uploadSingleFileAsset } from "./utils/singlefile";
-import { useTRPC } from "./utils/trpc";
-import { buildXArchiveHtml, getLoadedXCapture } from "./utils/xCapture";
+import { MessageType } from "./utils/type";
+import { getLoadedXCapture, saveXArchive } from "./utils/xCapture";
 
 export default function XQuickCapturePage() {
-  const api = useTRPC();
   const navigate = useNavigate();
   const [includeReplies, setIncludeReplies] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string>();
-  const createBookmark = useMutation(
-    api.bookmarks.createBookmark.mutationOptions(),
-  );
 
   const save = async () => {
     setError(undefined);
@@ -30,18 +22,10 @@ export default function XQuickCapturePage() {
       });
       if (!tab?.id) throw new Error("未找到当前标签页。");
       const capture = await getLoadedXCapture(tab.id, includeReplies);
-      const precrawledArchiveId = await uploadSingleFileAsset(
-        buildXArchiveHtml(capture),
-        capture.title,
-      );
-      const bookmark = await createBookmark.mutateAsync({
-        type: BookmarkTypes.LINK,
-        url: capture.sourceUrl,
-        title: capture.title,
-        note: capture.markdown,
-        precrawledArchiveId,
-        crawlPriority: "low",
-        source: "extension",
+      const bookmark = await saveXArchive(capture);
+      await chrome.runtime.sendMessage({
+        type: MessageType.BOOKMARK_REFRESH_BADGE,
+        currentTab: tab,
       });
       navigate(`/bookmark/${bookmark.id}`);
     } catch (saveError) {
